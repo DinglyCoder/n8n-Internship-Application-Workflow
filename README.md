@@ -2,6 +2,7 @@
 An n8n-built automated pipeline that scrapes tech internship opportunity postings, filters on requirements, uploads results to a spreadsheet, and sends daily updates/reminders.
 
 Currently sources postings from [Pitt CS Internship Github](https://github.com/SimplifyJobs/Summer2026-Internships). More Job board integrations coming soon. 
+
 This implementation filters out jobs that are for Graduate students or require US citizenship. This can easily be changed by modifying the "Scrape and Filter Internships" code node.
 
 The program is scheduled to run at 8:00am every day and send an email reminder that includes the number of job postings collected for that day. 
