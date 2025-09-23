@@ -1,0 +1,341 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "from bs4 import BeautifulSoup\nimport pprint\n\n# The Code node receives a list of input items. We'll process the first one.\nitem = _input.all()[0]\n\n# The HTML content is now in the .text property from the HTTP Request node\nhtml_content = item.json[\"data\"]\nsoup = BeautifulSoup(html_content, 'html.parser')\n\ninternships = []\nlast_company = ''\n\ntable_body = soup.find('tbody')\nif not table_body:\n    return []\n\nfor row in table_body.find_all('tr'):  \n    cells = row.find_all('td')\n    if len(cells) < 4:\n        continue\n\n    if cells[4].get_text(strip=True) != \"0d\":\n        # reached end of internship for today. end search\n        break\n    # print(cells[4].get_text(strip=True))\n\n    if \"🇺🇸\" in cells[1].get_text(strip=True):\n        # role requires citizenship, skip\n        continue\n      \n    company_cell = cells[0]\n    if '↳' in company_cell.get_text():\n        current_company = last_company\n    else:\n        current_company = company_cell.get_text(strip=True)\n        last_company = current_company\n\n    role = cells[1].get_text(strip=True)\n    location = cells[2].get_text(separator=', ', strip=True)\n    link_tag = cells[3].find('a')\n    application_link = link_tag['href'] if link_tag else 'N/A'\n\n    internships.append({\n        'company': current_company,\n        'role': role,\n        'location': location,\n        'application_link': application_link,\n    })\n\n# Return the final list of structured data\nreturn internships"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        144
+      ],
+      "id": "017f62aa-c3d6-4371-9278-b54fedb76fbc",
+      "name": "Scrape Internship Table"
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/SimplifyJobs/Summer2026-Internships/refs/heads/dev/README.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -272,
+        112
+      ],
+      "id": "3f0c52da-3c50-46b0-af35-a8d9ad77b65c",
+      "name": "GET Simplify READ.ME"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import re\n\n# Get all the items passed from the previous node\nall_items = _input.all()\n\n# Prepare a new list to store the new salary items\nnew_salary_items = []\n\n# Loop through each item containing the HTML of a page\nfor item in all_items:\n    html_content = item.json.get('data', '')\n    original_link = item.json.get('application_link', '') # Get link for reference\n\n    # Regular expression to find various salary formats\n    salary_regex = r\"(\\$[\\d,.]+[kK]?(?:\\s*-\\s*\\$[\\d,.]+[kK]?)?(?:\\s*\\/\\s*(?:hr|hour))?|\\d+[kK]?\\s*-\\s*\\d+[kK]?)\"\n    matches = re.findall(salary_regex, html_content)\n    \n    # Create a new dictionary for the output\n    new_item_data = {\n        'application_link': original_link # Include the link to match it later\n    }\n    \n    if matches:\n        new_item_data['salary_found'] = True\n        new_item_data['salary_range'] = ''.join(matches[0]).strip()\n    else:\n        new_item_data['salary_found'] = False\n        new_item_data['salary_range'] = \"N/A\"\n        \n    # Add the newly created dictionary to our results list\n    new_salary_items.append(new_item_data)\n\n# Return the list of new salary items\nreturn new_salary_items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        528
+      ],
+      "id": "ed05ec07-c07f-45f1-83f9-38b5a6ba23c0",
+      "name": "Get salary from posting"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.application_link }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -96,
+        528
+      ],
+      "id": "8e4c1926-b66f-4e07-ab64-004777e541a1",
+      "name": "HTTP Request",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "application_link",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        528
+      ],
+      "id": "52b9c2e0-45a0-4c80-8dde-e1c71c342b6b",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "content": "### Attempt to scrape opportunity salary range with regex\n\nFailed. Probably would work with AI API calls",
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -560,
+        512
+      ],
+      "typeVersion": 1,
+      "id": "abaa590e-43ea-4a07-9fef-c3c372e4c3d3",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1F9JylSfQYCJ0MehJRUz0vcNdyn_9otv0SSqqy2LBiRg",
+          "mode": "list",
+          "cachedResultName": "Internship applications workflow",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1F9JylSfQYCJ0MehJRUz0vcNdyn_9otv0SSqqy2LBiRg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1F9JylSfQYCJ0MehJRUz0vcNdyn_9otv0SSqqy2LBiRg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Company": "={{ $json.company }}",
+            "Role": "={{ $json.role }}",
+            "Location": "={{ $json.location }}",
+            "Application Link": "={{ $json.application_link }}",
+            "Date": "={{ $today.toFormat('yyyy-MM-dd') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Skip",
+              "displayName": "Skip",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Role",
+              "displayName": "Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Application Link",
+              "displayName": "Application Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Salary",
+              "displayName": "Salary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Applied",
+              "displayName": "Applied",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED",
+          "useAppend": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        112,
+        272
+      ],
+      "id": "e4e1c6cb-06e6-4e65-9ba8-a37a070a2e13",
+      "name": "Add to Sheets Table",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "snxKhUk9tY5p4jfK",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -512,
+        64
+      ],
+      "id": "325ece8b-cc4d-4386-8829-f45c24194596",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "fromEmail": "aks.kumartx@gmail.com",
+        "toEmail": "aks.kumartx@gmail.com",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        112,
+        96
+      ],
+      "id": "d4daea1a-ea2b-4ac2-8cef-ce59e437a11c",
+      "name": "Send email",
+      "webhookId": "7785fc96-c67e-4093-a5aa-7104ab7388d5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Scrape Internship Table": {
+      "main": [
+        [
+          {
+            "node": "Add to Sheets Table",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Simplify READ.ME": {
+      "main": [
+        [
+          {
+            "node": "Scrape Internship Table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get salary from posting": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Get salary from posting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "GET Simplify READ.ME",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Sheets Table": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f6b5486f-f2af-4360-bd05-6de167be1abe",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "eafb6beb29c0aaf9838dfdd556a4df7b974557db818a2e97541a9382aca59813"
+  },
+  "id": "ocfmy5PTQh5gSGZA",
+  "tags": []
+}
