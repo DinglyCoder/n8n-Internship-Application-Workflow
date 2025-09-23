@@ -6,7 +6,8 @@ This implementation filters out jobs that are for Graduate students or require U
 
 The program is scheduled to run at 8:00am every day and send an email reminder that includes the number of job postings collected for that day. 
 
-[!NOTE] n8n does not host its workflows on browser and requires a cloud service to host it
+[!NOTE]
+n8n does not host its workflows on browser and requires a cloud service to host it
 
 Current Workflow Diagram
 <img width="533" height="340" alt="Screenshot 2025-09-23 at 12 20 17 AM" src="https://github.com/user-attachments/assets/66926d8d-0afc-4217-98c5-4b5ad18d5702" />
