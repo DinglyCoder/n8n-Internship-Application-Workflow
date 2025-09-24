@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import pprint
 
+# remove body function header when using in n8n
 def body(_input):
     # The Code node receives a list of input items. We'll process the first one.
     item = _input.all()[0]
